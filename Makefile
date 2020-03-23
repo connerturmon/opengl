@@ -2,9 +2,11 @@
 SOURCE = src/main.cpp src/Shader.cpp src/ShaderProgram.cpp
 
 # Must be compiled after SOURCE
-C_SOURCE = -x c src/glad.c
+C_SOURCE = -x c dependencies/glad.c
+
+INC = -Isrc/include/
 
 LFLAGS_MACOS = -lglfw
 
 macos:
-	clang++ $(SOURCE) $(C_SOURCE) $(LFLAGS_MACOS)
+	clang++ $(INC) $(SOURCE) $(C_SOURCE) $(LFLAGS_MACOS)

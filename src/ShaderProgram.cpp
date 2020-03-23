@@ -12,7 +12,7 @@ ShaderProgram::ShaderProgram()
 bool ShaderProgram::link()
 {
 	glLinkProgram(id);
-	
+
 	bool success = true;
 	if (checkError() == false)
 		success = false;

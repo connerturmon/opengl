@@ -7,7 +7,6 @@ class ShaderProgram : public ShaderBase
 {
 public:
 	ShaderProgram();
-	virtual ~ShaderProgram();
 
 	void attachShader(GLuint shader) { glAttachShader(id, shader); }
 	void use() const { glUseProgram(id); }
