@@ -1,30 +1,23 @@
 #pragma once
+#include "ShaderBase.h"
 
 #include <string>
 #include <glad/glad.h>
 
-class Shader
+class Shader : public ShaderBase
 {
 public:
-	Shader(const char* path, GLenum type);
-	~Shader() { glDeleteShader(shader); }
+	Shader(const char *path, GLenum type);
+	virtual ~Shader() { glDeleteShader(id); }
 
-	const char* getPath() const { return path; }
-	const char* getSource() const { return source.c_str(); }
-	const char* errorLog() const { return error_log; }
-	GLuint getShader() const { return shader; }
+	const char *getPath() const { return path; }
+	const char *getSource() const { return source.c_str(); }
 	GLenum getType() const { return type; }
-
 	bool compile();
 
 private:
-	enum {
-		ERROR_LOG_SIZE = 512
-	};
-
-	const char* path;
+	virtual bool checkError();
+	const char *path;
 	std::string source;
 	GLenum type;
-	GLuint shader;
-	char error_log[ERROR_LOG_SIZE];
 };

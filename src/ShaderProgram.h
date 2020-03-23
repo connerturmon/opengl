@@ -1,19 +1,18 @@
 #pragma once
+#include "ShaderBase.h"
 
 #include <glad/glad.h>
 
-class ShaderProgram
+class ShaderProgram : public ShaderBase
 {
 public:
 	ShaderProgram();
+	virtual ~ShaderProgram();
 
-	void attachShader(GLuint shader) { glAttachShader(program_id, shader); }
-	void link() { glLinkProgram(program_id); }
+	void attachShader(GLuint shader) { glAttachShader(id, shader); }
+	void use() const { glUseProgram(id); }
+	bool link();
 
 private:
-	enum {
-		ERROR_LOG_SIZE
-	};
-	GLuint program_id;
-	char error_log[ERROR_LOG_SIZE];
+	virtual bool checkError();
 };

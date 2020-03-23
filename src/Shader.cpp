@@ -32,24 +32,29 @@ Shader::Shader(const char *path, GLenum type)
 		}
 	}
 
-	shader = glCreateShader(type);
+	id = glCreateShader(type);
 	const char* shader_source = source.c_str();
-	glShaderSource(shader, 1, &shader_source, NULL);
+	glShaderSource(id, 1, &shader_source, NULL);
 }
 
 bool Shader::compile()
 {
-	glCompileShader(shader);
+	glCompileShader(id);
+	
+	bool success = true;
+	if (checkError() == false)
+		success = false;
+	return success;
+}
 
-	// If shader fails to compile, the method will return false
-	// and the error_log will be populated. The use can then use the
-	// Shader::errorLog() method to read the error.
+bool Shader::checkError()
+{
 	int compilation_success;
 	bool success = true;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &compilation_success);
+	glGetShaderiv(id, GL_COMPILE_STATUS, &compilation_success);
 	if (!compilation_success)
 	{
-		glGetShaderInfoLog(shader, ERROR_LOG_SIZE, NULL, error_log);
+		glGetShaderInfoLog(id, ERROR_LOG_SIZE, NULL, error_log);
 		success = false;
 	}
 
