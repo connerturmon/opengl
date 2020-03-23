@@ -7,6 +7,10 @@ C_SOURCE = -x c dependencies/glad.c
 INC = -Isrc/include/
 
 LFLAGS_MACOS = -lglfw
+LFLAGS_LINUX = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl
 
 macos:
 	clang++ $(INC) $(SOURCE) $(C_SOURCE) $(LFLAGS_MACOS)
+
+linux:
+	clang++ $(INC) $(SOURCE) $(C_SOURCE) $(LFLAGS_LINUX)

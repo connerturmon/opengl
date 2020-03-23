@@ -1,6 +1,8 @@
 #include "ShaderProgram.h"
 
 #include <iostream>
+#include <cstring>
+
 #include <glad/glad.h>
 
 ShaderProgram::ShaderProgram()

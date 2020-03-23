@@ -3,3 +3,6 @@ a.out
 
 # Precompiled Headers
 *.gch
+
+# Visual Code Settings
+.vscode
