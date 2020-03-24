@@ -1,7 +1,11 @@
 #version 330 core
-layout (location = 0) in vec3 pos;
+layout (location = 0) in vec3 apos;
+layout (location = 1) in vec2 atexture_coords;
+
+out vec2 texture_coords;
 
 void main()
 {
-    gl_Position = vec4(pos.x, pos.y, pos.z, 1.0f);
+    gl_Position = vec4(apos.x, apos.y, apos.z, 1.0f);
+    texture_coords = atexture_coords;
 }

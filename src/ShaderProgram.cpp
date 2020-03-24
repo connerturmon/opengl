@@ -35,3 +35,15 @@ bool ShaderProgram::checkError()
 
 	return success;
 }
+
+void ShaderProgram::uniform4f(
+	const char *uniform,
+	GLfloat x,
+	GLfloat y,
+	GLfloat z,
+	GLfloat w)
+{
+	int uniform_location = glGetUniformLocation(id, uniform);
+	glUseProgram(id);
+	glUniform4f(uniform_location, x, y, z, w);
+}

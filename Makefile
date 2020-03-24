@@ -4,7 +4,7 @@ SOURCE = src/main.cpp src/Shader.cpp src/ShaderProgram.cpp
 # Must be compiled after SOURCE
 C_SOURCE = -x c dependencies/glad.c
 
-INC = -Isrc/include/
+INC = -Isrc/include/ -Idependencies/
 
 LFLAGS_MACOS = -lglfw
 LFLAGS_LINUX = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl
