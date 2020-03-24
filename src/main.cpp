@@ -5,9 +5,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
 #include "ShaderProgram.h"
+#include "Cube.h"
 
 const unsigned int WIN_WIDTH = 800;
 const unsigned int WIN_HEIGHT = 600;
@@ -43,40 +47,8 @@ int main(int argc, const char* argv[])
 	glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
 	glfwSetFramebufferSizeCallback(main_window, framebufferSizeCallback);
 
-	// CORDS AND SHIT
-	GLfloat vertices[] = {
-		// Vertices			// Texture Coords
-		-0.5, -0.5, 0.0,	0.0, 0.0, 0.0,		// 0 Bottom Left
-		-0.5,  0.5, 0.0,	0.0, 1.0, 0.0,		// 1 Top Left
-		 0.5, -0.5, 0.0,	1.0, 0.0, 0.0,		// 2 Bottom Right
-		 0.5,  0.5, 0.0,	1.0, 1.0, 0.0		// 3 Top Right
-	};
-
-	GLuint indices[] = {
-		0, 1, 2,
-		1, 2, 3
-	};
-
-	// BUFFERS AND SHIT
-	unsigned int vbo;
-	unsigned int vao;
-	unsigned int ebo;
-	
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glGenBuffers(1, &vbo);
-	glGenBuffers(1, &ebo);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
+	Cube cube;
+	cube.bind();
 
 	// TEXTURE
 	GLuint texture_id;
@@ -122,17 +94,39 @@ int main(int argc, const char* argv[])
 		std::cout << "FAILED TO LINK SHADERS:\n"
 		<< program.errorLog() << std::endl;
 
+	glm::vec3 cube_positions[] = {
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.4f, -1.5f, 1.0f),
+		glm::vec3(3.0f, 0.0f, -4.0f)
+	};
+
 	// MAIN LOOP
 	while (!glfwWindowShouldClose(main_window))
 	{
 		glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glm::mat4 view = glm::mat4(1.0f);
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
+
+		glm::mat4 projection;
+		projection = glm::perspective(glm::radians(80.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+		program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
 
 		program.use();
 		glBindTexture(GL_TEXTURE_2D, texture_id);
-		glBindVertexArray(vao);
+		
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		for (int i = 0; i < 3; i++)
+		{
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, cube_positions[i]);
+			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.8f, 0.2f, 0.5f));
+			program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 
 		glfwSwapBuffers(main_window);
 		glfwPollEvents();

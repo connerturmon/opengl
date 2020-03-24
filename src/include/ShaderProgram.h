@@ -15,7 +15,14 @@ public:
 		GLfloat x,
 		GLfloat y,
 		GLfloat z,
-		GLfloat w);
+		GLfloat w
+	);
+	void uniformMatrix(
+		const char *uniform,
+		GLsizei count,
+		GLboolean transpose,
+		const GLfloat *value
+	);
 	bool link();
 
 private:

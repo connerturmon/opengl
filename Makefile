@@ -1,5 +1,5 @@
 # Must be compiled before C-Source
-SOURCE = src/main.cpp src/Shader.cpp src/ShaderProgram.cpp
+SOURCE = src/main.cpp src/Shader.cpp src/ShaderProgram.cpp src/Cube.cpp
 
 # Must be compiled after SOURCE
 C_SOURCE = -x c dependencies/glad.c

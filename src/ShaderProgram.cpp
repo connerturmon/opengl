@@ -47,3 +47,13 @@ void ShaderProgram::uniform4f(
 	glUseProgram(id);
 	glUniform4f(uniform_location, x, y, z, w);
 }
+
+void ShaderProgram::uniformMatrix(
+	const char *uniform,
+	GLsizei count,
+	GLboolean transpose,
+	const GLfloat *value)
+{
+	int uniform_location = glGetUniformLocation(id, uniform);
+	glUniformMatrix4fv(uniform_location, count, transpose, value);
+}
