@@ -11,7 +11,6 @@ public:
     void bind();
 private:
     static GLuint vbo;
-    static GLuint vao;
 };
 
 const float vertices[] = {

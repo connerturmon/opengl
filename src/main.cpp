@@ -13,6 +13,7 @@
 #include "ShaderProgram.h"
 #include "Cube.h"
 #include "Texture.h"
+#include "Camera.h"
 
 const unsigned int WIN_WIDTH = 1920;
 const unsigned int WIN_HEIGHT = 1080;
@@ -22,16 +23,12 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouseCallback(GLFWwindow *window, double xpos, double ypos);
 
-glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
-
 float delta_time = 0.0f;
 float last_frame = 0.0f;
 
 float last_x = WIN_WIDTH / 2, last_y = WIN_HEIGHT / 2;
 
-float yaw = 0.0f, pitch = -90.0f;
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 int main(int argc, const char* argv[])
 {
@@ -66,62 +63,86 @@ int main(int argc, const char* argv[])
 
 	Cube cube;
 	cube.bind();
-	Texture texture("resource/container.jpg");
+
+	GLuint cube_vao;
+	glGenVertexArrays(1, &cube_vao);
+	glBindVertexArray(cube_vao);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	GLuint light_vao;
+	glGenVertexArrays(1, &light_vao);
+	glBindVertexArray(light_vao);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	// SHADERS AND SHIT
 	Shader vertex_shader("./src/shaders/vertex.vert", GL_VERTEX_SHADER);
-	Shader fragment_shader("./src/shaders/fragment.frag", GL_FRAGMENT_SHADER);
+	Shader lighting_shader("./src/shaders/lighting.frag", GL_FRAGMENT_SHADER);
 	if (!vertex_shader.compile())
 		std::cout << "FAILED TO COMPILE VERTEX SHADER:\n"
 		<< vertex_shader.errorLog() << std::endl;
-	if (!fragment_shader.compile())
+	if (!lighting_shader.compile())
 		std::cout << "FAILED TO COMPILE FRAGMENT SHADER:\n"
-		<< fragment_shader.errorLog() << std::endl;
+		<< lighting_shader.errorLog() << std::endl;
+	
+	Shader light_shader("./src/shaders/light.frag", GL_FRAGMENT_SHADER);
+	if (!light_shader.compile())
+		std::cout << "FAILED TO COMPILE LIGHT SHADER:\n"
+		<< lighting_shader.errorLog() << std::endl;
 
-	ShaderProgram program;
-	program.attachShader(vertex_shader.getid());
-	program.attachShader(fragment_shader.getid());
-	if (!program.link())
+	ShaderProgram lighting_program;
+	lighting_program.attachShader(vertex_shader.getid());
+	lighting_program.attachShader(lighting_shader.getid());
+	if (!lighting_program.link())
 		std::cout << "FAILED TO LINK SHADERS:\n"
-		<< program.errorLog() << std::endl;
+		<< lighting_program.errorLog() << std::endl;
+	
+	ShaderProgram light_program;
+	light_program.attachShader(vertex_shader.getid());
+	light_program.attachShader(light_shader.getid());
+	if (!light_program.link())
+		std::cout << "FAILED TO LINK LIGHT SHADERS:\n"
+		<< lighting_program.errorLog() << std::endl;
 
-	glm::vec3 cube_positions[] = {
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.4f, -1.5f, 1.0f),
-		glm::vec3(3.0f, 0.0f, -4.0f)
-	};
-
+	bool translated = false;
 	// MAIN LOOP
 	while (!glfwWindowShouldClose(main_window))
 	{
+		std::cout << "\nNew frame" << std::endl;
 		glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		processInput(main_window);
 
-		// Camera
+		lighting_program.use();
+		glBindVertexArray(cube_vao);
+
 		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
-		program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
+		view = camera.viewMatrix();
+		lighting_program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
 
 		glm::mat4 projection;
 		projection = glm::perspective(glm::radians(80.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-		program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
+		lighting_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
+		glm::mat4 model = glm::mat4(1.0f);
 
-		program.use();
-		texture.bind();
-		
-		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		for (int i = 0; i < 3; i++)
-		{
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, cube_positions[i]);
-			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.8f, 0.2f, 0.5f));
-			program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-		
+		lighting_program.uniform3f("cube_color", 0.8f, 0.1f, 0.0f);
+		lighting_program.uniform3f("light_color", 1.0f, 1.0f, 1.0f);
+		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		light_program.use();
+		glBindVertexArray(light_vao);
+		light_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
+		light_program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		light_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
 		glfwSwapBuffers(main_window);
 		glfwPollEvents();
 	}
@@ -149,20 +170,21 @@ void processInput(GLFWwindow *window)
 	delta_time = current_frame - last_frame;
 	last_frame = current_frame;
 
-	const float camera_speed = 4.0f * delta_time;
-
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera_pos += camera_speed * camera_front;
+		camera.processInput(CameraDirection::FORWARD, delta_time);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera_pos -= camera_speed * camera_front;
+		camera.processInput(CameraDirection::BACK, delta_time);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera_pos -= camera_speed * glm::normalize(glm::cross(camera_front, camera_up));
+		camera.processInput(CameraDirection::LEFT, delta_time);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera_pos += camera_speed * glm::normalize(glm::cross(camera_front, camera_up));
+		camera.processInput(CameraDirection::RIGHT, delta_time);
 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-		camera_pos -= camera_speed * camera_up;
-	if (glfwGetKey(window, GLFW_KEY_SPACE))
-		camera_pos += camera_speed * camera_up;
+		camera.processInput(CameraDirection::DOWN, delta_time);
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		camera.processInput(CameraDirection::UP, delta_time);
+
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE))
+		glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos)
@@ -172,21 +194,5 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos)
 	last_x = xpos;
 	last_y = ypos;
 
-	const float sensitivity = 0.1f;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-	
-	glm::vec3 direction;
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	camera_front = glm::normalize(direction);
+	camera.processMouseInput(xoffset, yoffset);
 }

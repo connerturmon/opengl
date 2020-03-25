@@ -46,6 +46,7 @@ void ShaderProgram::uniform4f(
 	int uniform_location = glGetUniformLocation(id, uniform);
 	glUseProgram(id);
 	glUniform4f(uniform_location, x, y, z, w);
+	std::cout << "Set uniform " << uniform << " in " << id << std::endl;
 }
 
 void ShaderProgram::uniformMatrix(
@@ -56,4 +57,16 @@ void ShaderProgram::uniformMatrix(
 {
 	int uniform_location = glGetUniformLocation(id, uniform);
 	glUniformMatrix4fv(uniform_location, count, transpose, value);
+	std::cout << "Set uniform " << uniform << " in " << id << std::endl;
+}
+
+void ShaderProgram::uniform3f(
+	const char *uniform,
+	GLfloat x,
+	GLfloat y,
+	GLfloat z)
+{
+	int uniform_location = glGetUniformLocation(id, uniform);
+	glUniform3f(uniform_location, x, y, z);
+	std::cout << "Set uniform " << uniform << " in " << id << std::endl;
 }
