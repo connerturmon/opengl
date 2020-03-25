@@ -67,13 +67,15 @@ int main(int argc, const char* argv[])
 	GLuint cube_vao;
 	glGenVertexArrays(1, &cube_vao);
 	glBindVertexArray(cube_vao);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	GLuint light_vao;
 	glGenVertexArrays(1, &light_vao);
 	glBindVertexArray(light_vao);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	// SHADERS AND SHIT
@@ -110,14 +112,17 @@ int main(int argc, const char* argv[])
 	while (!glfwWindowShouldClose(main_window))
 	{
 		std::cout << "\nNew frame" << std::endl;
-		glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+		glClearColor(0.02f, 0.10f, 0.12f, 1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		processInput(main_window);
 
+		glm::vec3 light_pos = glm::vec3(2.0f, 1.0f, -0.5f);
+		glm::vec3 cube_color = glm::vec3(0.8f, 0.1f, 0.0f);
+		glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
+
 		lighting_program.use();
-		glBindVertexArray(cube_vao);
 
 		glm::mat4 view = glm::mat4(1.0f);
 		view = camera.viewMatrix();
@@ -128,19 +133,21 @@ int main(int argc, const char* argv[])
 		lighting_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
 		glm::mat4 model = glm::mat4(1.0f);
 
-		lighting_program.uniform3f("cube_color", 0.8f, 0.1f, 0.0f);
-		lighting_program.uniform3f("light_color", 1.0f, 1.0f, 1.0f);
+		lighting_program.uniform3f("cube_color", cube_color);
+		lighting_program.uniform3f("light_color", light_color);
 		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+		lighting_program.uniform3f("light_pos", light_pos);
+		glBindVertexArray(cube_vao);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		light_program.use();
-		glBindVertexArray(light_vao);
 		light_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
 		light_program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+		model = glm::translate(model, light_pos);
 		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
 		light_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+		glBindVertexArray(light_vao);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glfwSwapBuffers(main_window);

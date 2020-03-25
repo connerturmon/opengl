@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
 ShaderProgram::ShaderProgram()
 {
@@ -62,11 +63,9 @@ void ShaderProgram::uniformMatrix(
 
 void ShaderProgram::uniform3f(
 	const char *uniform,
-	GLfloat x,
-	GLfloat y,
-	GLfloat z)
+	glm::vec3 vector)
 {
 	int uniform_location = glGetUniformLocation(id, uniform);
-	glUniform3f(uniform_location, x, y, z);
+	glUniform3f(uniform_location, vector.x, vector.y, vector.z);
 	std::cout << "Set uniform " << uniform << " in " << id << std::endl;
 }

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
 class ShaderProgram : public ShaderBase
 {
@@ -16,20 +17,18 @@ public:
 		GLfloat x,
 		GLfloat y,
 		GLfloat z,
-		GLfloat w
-	);
+		GLfloat w);
+
 	void uniformMatrix(
 		const char *uniform,
 		GLsizei count,
 		GLboolean transpose,
-		const GLfloat *value
-	);
+		const GLfloat *value);
+
 	void uniform3f(
 		const char *uniform,
-		GLfloat x,
-		GLfloat y,
-		GLfloat z
-	);
+		glm::vec3 vector);
+
 	bool link();
 
 private:
