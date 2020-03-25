@@ -12,12 +12,26 @@
 #include "Shader.h"
 #include "ShaderProgram.h"
 #include "Cube.h"
+#include "Texture.h"
 
-const unsigned int WIN_WIDTH = 800;
-const unsigned int WIN_HEIGHT = 600;
+const unsigned int WIN_WIDTH = 1920;
+const unsigned int WIN_HEIGHT = 1080;
 
 void glfwErrorCallback(int code, const char* description);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow *window);
+void mouseCallback(GLFWwindow *window, double xpos, double ypos);
+
+glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float delta_time = 0.0f;
+float last_frame = 0.0f;
+
+float last_x = WIN_WIDTH / 2, last_y = WIN_HEIGHT / 2;
+
+float yaw = 0.0f, pitch = -90.0f;
 
 int main(int argc, const char* argv[])
 {
@@ -34,9 +48,10 @@ int main(int argc, const char* argv[])
 	GLFWwindow* main_window = glfwCreateWindow(
 		WIN_WIDTH, WIN_HEIGHT,
 		"Learning OpenGL",
-		NULL, NULL
+		glfwGetPrimaryMonitor(), NULL
 		);
 	glfwMakeContextCurrent(main_window);
+	glfwSetCursorPosCallback(main_window, mouseCallback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -47,35 +62,11 @@ int main(int argc, const char* argv[])
 	glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
 	glfwSetFramebufferSizeCallback(main_window, framebufferSizeCallback);
 
+	glfwSetInputMode(main_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 	Cube cube;
 	cube.bind();
-
-	// TEXTURE
-	GLuint texture_id;
-	glGenTextures(1, &texture_id);
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-
-	int width, height, n_channels;
-	unsigned char *data = stbi_load(
-		"resource/container.jpg",
-		&width,
-		&height,
-		&n_channels,
-		0
-	);
-	if (data)
-	{
-		glTexImage2D(
-			GL_TEXTURE_2D, 0, GL_RGB,
-			width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-			data
-		);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-		std::cout << "Failed to load texture" << std::endl;
-
-	stbi_image_free(data);
+	Texture texture("resource/container.jpg");
 
 	// SHADERS AND SHIT
 	Shader vertex_shader("./src/shaders/vertex.vert", GL_VERTEX_SHADER);
@@ -107,16 +98,19 @@ int main(int argc, const char* argv[])
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		processInput(main_window);
+
+		// Camera
 		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
 		program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
 
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(80.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(80.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
 		program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
 
 		program.use();
-		glBindTexture(GL_TEXTURE_2D, texture_id);
+		texture.bind();
 		
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		for (int i = 0; i < 3; i++)
@@ -127,7 +121,7 @@ int main(int argc, const char* argv[])
 			program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-
+		
 		glfwSwapBuffers(main_window);
 		glfwPollEvents();
 	}
@@ -147,4 +141,52 @@ void glfwErrorCallback(int code, const char* description)
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow *window)
+{
+	float current_frame = glfwGetTime();
+	delta_time = current_frame - last_frame;
+	last_frame = current_frame;
+
+	const float camera_speed = 4.0f * delta_time;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera_pos += camera_speed * camera_front;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera_pos -= camera_speed * camera_front;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera_pos -= camera_speed * glm::normalize(glm::cross(camera_front, camera_up));
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera_pos += camera_speed * glm::normalize(glm::cross(camera_front, camera_up));
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		camera_pos -= camera_speed * camera_up;
+	if (glfwGetKey(window, GLFW_KEY_SPACE))
+		camera_pos += camera_speed * camera_up;
+}
+
+void mouseCallback(GLFWwindow *window, double xpos, double ypos)
+{
+	float xoffset = xpos - last_x;
+	float yoffset = last_y - ypos;
+	last_x = xpos;
+	last_y = ypos;
+
+	const float sensitivity = 0.1f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+	
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	camera_front = glm::normalize(direction);
 }
