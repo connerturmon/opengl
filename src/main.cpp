@@ -112,13 +112,15 @@ int main(int argc, const char* argv[])
 	while (!glfwWindowShouldClose(main_window))
 	{
 		std::cout << "\nNew frame" << std::endl;
-		glClearColor(0.02f, 0.10f, 0.12f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		processInput(main_window);
 
-		glm::vec3 light_pos = glm::vec3(2.0f, 1.0f, -0.5f);
+		// float light_z = sin(glfwGetTime() * 1.5) * 3.0;
+		// float light_x = cos(glfwGetTime() * 1.5) * 3.0;
+		glm::vec3 light_pos = glm::vec3(1.0f, 0.8f, 1.0f);
 		glm::vec3 cube_color = glm::vec3(0.8f, 0.1f, 0.0f);
 		glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -137,12 +139,20 @@ int main(int argc, const char* argv[])
 		lighting_program.uniform3f("light_color", light_color);
 		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
 		lighting_program.uniform3f("light_pos", light_pos);
+		glm::vec3 camera_position = camera.getPosition();
+		lighting_program.uniform3f("view_pos", camera_position);
 		glBindVertexArray(cube_vao);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(-0.5, -1.0, 2.0));
+		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+		lighting_program.uniform3f("cube_color", glm::vec3(0.1, 0.4, 0.8));
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		light_program.use();
 		light_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
 		light_program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
+		light_program.uniform3f("light_color", light_color);
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, light_pos);
 		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
