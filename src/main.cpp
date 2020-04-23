@@ -122,15 +122,19 @@ int main(int argc, const char* argv[])
 		std::cout << "FAILED TO LINK LIGHT SHADERS:\n"
 		<< lighting_program.errorLog() << std::endl;
 
+	// FUN VARIABLES
 	bool translated = false;
-	float light_pos_raw[3] = {
-		1.0f, 1.0f, 1.0f
-	};
+	float light_pos_raw[3] = {1.0f, 1.0f, 1.0f};
+	float light_color_raw[3] = {1.0f, 1.0f, 1.0f};
+	float clear_color[3] = {0.1f, 0.1f, 0.1f};
+	bool show_wireframe = false;
+	float camera_fov = 90.0f;
+	float cube_scale = 1.0f;
 
 	// MAIN LOOP
 	while (!glfwWindowShouldClose(main_window))
 	{
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClearColor(clear_color[0], clear_color[1], clear_color[2], 1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -138,12 +142,31 @@ int main(int argc, const char* argv[])
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		// ImGui::ShowDemoWindow();
 		// ImGui Window
 		{
 			ImGui::Begin("Tools");
-			ImGui::DragFloat3("Light", light_pos_raw, 0.05f, -20.0f, 20.0f, "%.2f");
+
+			ImGui::Text("Light Properties:");
+			ImGui::DragFloat3("Position", light_pos_raw, 0.05f, -20.0f, 20.0f, "%.2f");
+			ImGui::ColorEdit3("Color", light_color_raw);
+
+			ImGui::Text("Camera Properties:");
+			ImGui::SliderFloat("FOV", &camera_fov, 50.0f, 120.0f, "%.1f");
+
+			ImGui::Text("Cube Properties:");
+			ImGui::SliderFloat("Scale", &cube_scale, 0.1f, 3.0f, "%.1f");
+
+			ImGui::Text("Other Properties:");
+			ImGui::ColorEdit3("Background", clear_color);
+			ImGui::Checkbox("Show Wireframe", &show_wireframe);
+
 			ImGui::End();
 		}
+
+		show_wireframe ?
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) :
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		processInput(main_window);
 		if (!release_mouse)
@@ -155,7 +178,7 @@ int main(int argc, const char* argv[])
 		// float light_x = cos(glfwGetTime() * 1.5) * 3.0;
 		glm::vec3 light_pos = glm::vec3(light_pos_raw[0], light_pos_raw[1], light_pos_raw[2]);
 		glm::vec3 cube_color = glm::vec3(0.8f, 0.1f, 0.0f);
-		glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 light_color = glm::vec3(light_color_raw[0], light_color_raw[1], light_color_raw[2]);
 
 		lighting_program.use();
 
@@ -164,9 +187,10 @@ int main(int argc, const char* argv[])
 		lighting_program.uniformMatrix("view", 1, GL_FALSE, glm::value_ptr(view));
 
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(80.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(camera_fov), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
 		lighting_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
 		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::scale(model, glm::vec3(cube_scale, cube_scale, cube_scale));
 
 		lighting_program.uniform3f("cube_color", cube_color);
 		lighting_program.uniform3f("light_color", light_color);
@@ -176,8 +200,10 @@ int main(int argc, const char* argv[])
 		lighting_program.uniform3f("view_pos", camera_position);
 		glBindVertexArray(cube_vao);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(-0.5, -1.0, 2.0));
+		model = glm::scale(model, glm::vec3(cube_scale, cube_scale, cube_scale));
 		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
 		lighting_program.uniform3f("cube_color", glm::vec3(0.1, 0.4, 0.8));
 		glDrawArrays(GL_TRIANGLES, 0, 36);
