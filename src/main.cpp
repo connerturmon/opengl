@@ -8,6 +8,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 
 #include "Shader.h"
 #include "ShaderProgram.h"
@@ -22,6 +25,7 @@ void glfwErrorCallback(int code, const char* description);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouseCallback(GLFWwindow *window, double xpos, double ypos);
+void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 float delta_time = 0.0f;
 float last_frame = 0.0f;
@@ -29,6 +33,8 @@ float last_frame = 0.0f;
 float last_x = WIN_WIDTH / 2, last_y = WIN_HEIGHT / 2;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
+bool release_mouse = false;
 
 int main(int argc, const char* argv[])
 {
@@ -48,7 +54,6 @@ int main(int argc, const char* argv[])
 		glfwGetPrimaryMonitor(), NULL
 		);
 	glfwMakeContextCurrent(main_window);
-	glfwSetCursorPosCallback(main_window, mouseCallback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -57,9 +62,19 @@ int main(int argc, const char* argv[])
 	}
 
 	glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
-	glfwSetFramebufferSizeCallback(main_window, framebufferSizeCallback);
 
-	glfwSetInputMode(main_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetFramebufferSizeCallback(main_window, framebufferSizeCallback);
+	glfwSetKeyCallback(main_window, glfwKeyCallback);
+	glfwSetCursorPosCallback(main_window, mouseCallback);
+
+	// IMGUI SETUP
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(main_window, true);
+	ImGui_ImplOpenGL3_Init("#version 150");
 
 	Cube cube;
 	cube.bind();
@@ -108,19 +123,37 @@ int main(int argc, const char* argv[])
 		<< lighting_program.errorLog() << std::endl;
 
 	bool translated = false;
+	float light_pos_raw[3] = {
+		1.0f, 1.0f, 1.0f
+	};
+
 	// MAIN LOOP
 	while (!glfwWindowShouldClose(main_window))
 	{
-		std::cout << "\nNew frame" << std::endl;
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// ImGui Window
+		{
+			ImGui::Begin("Tools");
+			ImGui::DragFloat3("Light", light_pos_raw, 0.05f, -20.0f, 20.0f, "%.2f");
+			ImGui::End();
+		}
+
 		processInput(main_window);
+		if (!release_mouse)
+			glfwSetInputMode(main_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		else
+			glfwSetInputMode(main_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 		// float light_z = sin(glfwGetTime() * 1.5) * 3.0;
 		// float light_x = cos(glfwGetTime() * 1.5) * 3.0;
-		glm::vec3 light_pos = glm::vec3(1.0f, 0.8f, 1.0f);
+		glm::vec3 light_pos = glm::vec3(light_pos_raw[0], light_pos_raw[1], light_pos_raw[2]);
 		glm::vec3 cube_color = glm::vec3(0.8f, 0.1f, 0.0f);
 		glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -159,6 +192,9 @@ int main(int argc, const char* argv[])
 		light_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(light_vao);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(main_window);
 		glfwPollEvents();
@@ -206,10 +242,19 @@ void processInput(GLFWwindow *window)
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos)
 {
-	float xoffset = xpos - last_x;
-	float yoffset = last_y - ypos;
-	last_x = xpos;
-	last_y = ypos;
+	if (!release_mouse)
+	{
+		float xoffset = xpos - last_x;
+		float yoffset = last_y - ypos;
+		last_x = xpos;
+		last_y = ypos;
 
-	camera.processMouseInput(xoffset, yoffset);
+		camera.processMouseInput(xoffset, yoffset);
+	}
+}
+
+void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+		release_mouse = release_mouse ? false : true;
 }
