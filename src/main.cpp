@@ -95,6 +95,24 @@ int main(int argc, const char* argv[])
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	GLfloat plane_verts[] = {
+		-0.5f, -0.5f, 0.0f,
+		-0.5f, 0.5f, 0.0f,
+		0.5f, -0.5f, 0.0f,
+		0.5f, -0.5f, 0.0f,
+		0.5f, 0.5f, 0.0f,
+		-0.5f, 0.5f, 0.0f
+	};
+	GLuint plane_vbo;
+	glGenBuffers(1, &plane_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, plane_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(plane_verts), plane_verts, GL_STATIC_DRAW);
+	GLuint plane_vao;
+	glGenVertexArrays(1, &plane_vao);
+	glBindVertexArray(plane_vao);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, (void*)0);
+	glEnableVertexAttribArray(0);
+
 	// SHADERS AND SHIT
 	Shader vertex_shader("./src/shaders/vertex.vert", GL_VERTEX_SHADER);
 	Shader lighting_shader("./src/shaders/lighting.frag", GL_FRAGMENT_SHADER);
@@ -219,6 +237,17 @@ int main(int argc, const char* argv[])
 			glm::vec3(0.1f, 0.2f, 0.9f),
 			cube_scale, lighting_program, cube_vao);
 		blue_cube.Render();
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(20.0f, 20.0f, 0.0f));
+		lighting_program.uniform3f("cube_color", glm::vec3(1.0f, 1.0f, 1.0f));
+		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
+		glBindVertexArray(plane_vao);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		
+		glBindVertexArray(cube_vao);
 
 		if (generate_cube)
 		{
