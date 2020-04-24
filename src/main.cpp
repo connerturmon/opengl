@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <glad/glad.h>
@@ -17,6 +18,7 @@
 #include "Cube.h"
 #include "Texture.h"
 #include "Camera.h"
+#include "CubeInst.h"
 
 const unsigned int WIN_WIDTH = 1920;
 const unsigned int WIN_HEIGHT = 1080;
@@ -130,6 +132,12 @@ int main(int argc, const char* argv[])
 	bool show_wireframe = false;
 	float camera_fov = 90.0f;
 	float cube_scale = 1.0f;
+	float new_cube_pos[3] = {0.0f, 0.0f, 0.0f};
+	float new_cube_color[3] = {0.5f, 0.5f, 0.5f};
+	bool generate_cube = false;
+	bool generated = false;
+
+	std::vector<CubeInst> cube_list;
 
 	// MAIN LOOP
 	while (!glfwWindowShouldClose(main_window))
@@ -148,11 +156,16 @@ int main(int argc, const char* argv[])
 			ImGui::Begin("Tools");
 
 			ImGui::Text("Light Properties:");
-			ImGui::DragFloat3("Position", light_pos_raw, 0.05f, -20.0f, 20.0f, "%.2f");
-			ImGui::ColorEdit3("Color", light_color_raw);
+			ImGui::DragFloat3("Position##light", light_pos_raw, 0.05f, -20.0f, 20.0f, "%.2f");
+			ImGui::ColorEdit3("Color##light", light_color_raw);
 
 			ImGui::Text("Camera Properties:");
 			ImGui::SliderFloat("FOV", &camera_fov, 50.0f, 120.0f, "%.1f");
+
+			ImGui::Text("Cube Creation:");
+			ImGui::SliderFloat3("Position##cube", new_cube_pos, -2.0f, 2.0f);
+			ImGui::ColorEdit3("Color##cube", new_cube_color);
+			generate_cube = ImGui::Button("Create");
 
 			ImGui::Text("Cube Properties:");
 			ImGui::SliderFloat("Scale", &cube_scale, 0.1f, 3.0f, "%.1f");
@@ -189,9 +202,9 @@ int main(int argc, const char* argv[])
 		glm::mat4 projection;
 		projection = glm::perspective(glm::radians(camera_fov), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
 		lighting_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
+		
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::scale(model, glm::vec3(cube_scale, cube_scale, cube_scale));
-
 		lighting_program.uniform3f("cube_color", cube_color);
 		lighting_program.uniform3f("light_color", light_color);
 		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
@@ -201,12 +214,24 @@ int main(int argc, const char* argv[])
 		glBindVertexArray(cube_vao);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(-0.5, -1.0, 2.0));
-		model = glm::scale(model, glm::vec3(cube_scale, cube_scale, cube_scale));
-		lighting_program.uniformMatrix("model", 1, GL_FALSE, glm::value_ptr(model));
-		lighting_program.uniform3f("cube_color", glm::vec3(0.1, 0.4, 0.8));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		CubeInst blue_cube(
+			glm::vec3(-1.3f, -0.5f, 1.7f),
+			glm::vec3(0.1f, 0.2f, 0.9f),
+			cube_scale, lighting_program, cube_vao);
+		blue_cube.Render();
+
+		if (generate_cube)
+		{
+			CubeInst new_cube(
+				glm::vec3(new_cube_pos[0], new_cube_pos[1], new_cube_pos[2]),
+				glm::vec3(new_cube_color[0], new_cube_color[1], new_cube_color[2]),
+				1.0f,
+				lighting_program,
+				cube_vao);
+			cube_list.push_back(new_cube);
+		}
+		for (std::vector<CubeInst>::iterator it = cube_list.begin(); it != cube_list.end(); it++)
+			it->Render();
 
 		light_program.use();
 		light_program.uniformMatrix("projection", 1, GL_FALSE, glm::value_ptr(projection));
@@ -225,6 +250,10 @@ int main(int argc, const char* argv[])
 		glfwSwapBuffers(main_window);
 		glfwPollEvents();
 	}
+
+	ImGui_ImplGlfw_Shutdown();
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui::DestroyContext();
 
 	glfwTerminate();
 
